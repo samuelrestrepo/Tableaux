@@ -21,27 +21,30 @@ class Tree(object):
 		self.right = right
 		self.label = label
 
-def Inorder(f):
-    # Imprime una formula como cadena dada una formula como arbol
-    # Input: tree, que es una formula de logica proposicional
-    # Output: string de la formula
-	if f.right == None:
-		return f.label
-	elif f.label == '-':
-		return f.label + Inorder(f.right)
-	else:
-		return "(" + Inorder(f.left) + f.label + Inorder(f.right) + ")"
+def Inorder(A):
+    if A.right == None:
+        return A.label
+    elif A.label == "-":
+        return "-" + Inorder(A.right)
+    elif A.label in ["Y", "O", ">", "="]:
+        return "(" + Inorder(A.left) + A.label + Inorder(A.right) + ")"
 
-def StringtoTree(A):
-    # Crea una formula como tree dada una formula como cadena escrita en notacion polaca inversa
-    # Input: A, lista de caracteres con una formula escrita en notacion polaca inversa
-             # letrasProposicionales, lista de letras proposicionales
-    # Output: formula como tree
-
-	# OJO: DEBE INCLUIR SU CÓDIGO DE STRING2TREE EN ESTA PARTE!!!!!
-
-	p = letrasProposicionales[0] # ELIMINE ESTA LINEA LUEGO DE INCLUIR EL CODIGO DE STRING2TREE
-	return Tree(p, None, None) # ELIMINE ESTA LINEA LUEGO DE INCLUIR EL CODIGO DE STRING2TREE
+def string2tree(A):
+    conectivos = ["O", "Y", ">", "="]
+    pila = []
+    for c in A:
+        if c in letrasProposicionales:
+            pila.append(Tree(c, None, None))
+        elif c == "-":
+            formulaaux = Tree(c, None, pila[-1])
+            del pila[-1]
+            pila.append(formulaaux)
+        elif c in conectivos:
+            formulaaux = Tree(c, pila[-1], pila[-2])
+            del pila[-1]
+            del pila[-1]
+            pila.append(formulaaux)
+    return pila[-1]
 
 ##############################################################################
 # Definición de funciones de tableaux
@@ -58,43 +61,117 @@ def imprime_hoja(H):
 		cadena += Inorder(f)
 	return cadena + "}"
 
-def par_complementario(l):
-	# Esta función determina si una lista de solo literales
-	# contiene un par complementario
-	# Input: l, una lista de literales
-	# Output: True/False
-	return False
 
 def es_literal(f):
-	# Esta función determina si el árbol f es un literal
-	# Input: f, una fórmula como árbol
-	# Output: True/False
-	return False
+	A = Inorder(f)
+    if len(A) <= 2:
+        return True
+    else:
+        return False
 
 def no_literales(l):
-	# Esta función determina si una lista de fórmulas contiene
-	# solo literales
-	# Input: l, una lista de fórmulas como árboles
-	# Output: None/f, tal que f no es literal
-	return False
+	for i in l:
+        if es_literal(i):
+            return True
+        else:
+            return False
+
+def par_complementario(l):
+    letrasProposicionales = [chr(x) for x in range(97, 123)]
+	for i in letrasProposicionales:
+        A = Tree(i, None, None)
+        No_A = Tree("-", None, i)
+
+        if A and No_A in l:
+            return True
+        else:
+            return False
+
+def alfa_beta(f):
+    if f.label == "-":
+        if f.right.label == "-":
+            return "1alfa"
+        elif f.right.label == "O":
+            return "3alfa"
+        elif f.right.label == ">":
+            return "4alfa"
+        elif f.right.label == "Y":
+            return "1beta"
+    elif f.label == "Y":
+        return "2alfa"
+    elif f.label == "O":
+        return "2beta"
+    elif f.label == ">":
+        return "3beta"
+    else:
+        return "hoja"
 
 def clasifica_y_extiende(f):
-	# clasifica una fórmula como alfa o beta y extiende listaHojas
-	# de acuerdo a la regla respectiva
-	# Input: f, una fórmula como árbol
-	# Output: no tiene output, pues modifica la variable global listaHojas
 	global listaHojas
 
-def Tableaux(f):
+	clasificacion = alfa_beta(f)
 
-	# Algoritmo de creacion de tableau a partir de lista_hojas
-	# Imput: - f, una fórmula como string en notación polaca inversa
-	# Output: interpretaciones: lista de listas de literales que hacen
-	#		 verdadera a f
+	if clasificacion == "hoja":
+		listaHojas.remove([f])
+		listaHojas.append(f)
+
+	elif clasificacion == "1alfa":
+		hoja = [f.right.right]
+		listaHojas.remove([f])
+		listaHojas.append(hoja)
+
+	elif clasificacion == "2alfa":
+	  	hoja_l = f.left
+	  	hoja_r = f.right
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hoja_l,hoja_r])
+
+	elif clasificacion == "3alfa":
+	  	hoja_l = Tree('-', None, f.right.left)
+	  	hoja_r = Tree('-', None, f.right.right)
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hijo_izq,hijo_der])
+
+	elif clasificacion == "4alfa":
+	  	hoja_l = f.right.left
+	  	hoja_r = Tree('-', None, f.right.right)
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hijo_izq,hijo_der])
+
+	elif clasificacion == "1beta":
+	  	hoja_l = Tree('-', None, f.right.left)
+	  	hoja_r = Tree('-', None, f.right.right)
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hoja_l], [hoja_r])
+
+	elif clasificacion == "2beta":
+	  	hoja_l = f.left
+	  	hoja_r = f.right
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hoja_l], [hoja_r])
+
+	elif clasificacion == "3beta":
+	  	hoja_l = Tree('-', None, f.left)
+	  	hoja_r = f.right
+	  	listaHojas.remove([f])
+	  	listaHojas.append([hoja_l], [hoja_r])
+
+def Tableaux(f):
 	global listaHojas
 	global listaInterpsVerdaderas
 
-	A = string2Tree(f)
+	A = StringtoTree(f)
 	listaHojas = [[A]]
+	clasifica_y_extiende(A)
+	while len(listaHojas)>0:
+		for i in listaHojas:
+			if not no_literales(i):
+				if par_complementario(i):
+					listaHojas.remove(i)
+				else:
+					listaInterpsVerdaderas.append(i)
+					listaHojas.remove(i)
+			else:
+				clasifica_y_extiende(no_literales(i))
 
 	return listaInterpsVerdaderas
